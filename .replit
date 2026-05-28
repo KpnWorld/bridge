@@ -1,0 +1,18 @@
+modules = ["nodejs-20", "python-3.11"]
+
+# Forces the green "Run" button to execute inside the correct directory
+run = "npm --prefix portal run dev"
+
+[[ports]]
+localPort = 5174
+externalPort = 80
+
+[[ports]]
+localPort = 6767
+externalPort = 3000
+
+[agent]
+expertMode = true
+
+[nix]
+packages = ["psmisc"]
