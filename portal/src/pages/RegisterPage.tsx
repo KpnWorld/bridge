@@ -2,7 +2,6 @@
 // License: AGPL-3.0
 
 import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -20,7 +19,7 @@ export default function RegisterPage() {
     return val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault()
     setError(null)
     setLoading(true)
@@ -32,7 +31,9 @@ export default function RegisterPage() {
     })
 
     if (authError || !authData.user) {
-      setError(authError?.message ?? 'Signup failed')
+      const msg = authError?.message ?? 'Signup failed'
+      console.error('[kpn-bridge] Auth error:', msg)
+      setError(msg)
       setLoading(false)
       return
     }
@@ -43,6 +44,7 @@ export default function RegisterPage() {
     })
 
     if (orgError) {
+      console.error('[kpn-bridge] Org creation error:', orgError)
       setError(orgError.message)
       setLoading(false)
       return

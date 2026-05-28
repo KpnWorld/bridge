@@ -2,7 +2,6 @@
 // License: AGPL-3.0
 
 import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -13,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault()
     setError(null)
     setLoading(true)
@@ -21,6 +20,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
+      console.error('[kpn-bridge] Login error:', error)
       setError(error.message)
       setLoading(false)
       return
