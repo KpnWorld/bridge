@@ -1,7 +1,8 @@
 // kpn-bridge :: Login page
 // License: AGPL-3.0
 
-import { useState, FormEvent } from 'react'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -31,8 +32,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
-
-        {/* Logo / Brand */}
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             kpn-bridge
@@ -41,15 +40,10 @@ export default function LoginPage() {
             Sign in to your workspace
           </p>
         </div>
-
-        {/* Card */}
         <div className="bg-card border border-border rounded-lg p-6 space-y-4 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
-
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
-                Email
-              </label>
+              <label className="text-sm font-medium text-foreground">Email</label>
               <input
                 type="email"
                 required
@@ -59,11 +53,8 @@ export default function LoginPage() {
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
-                Password
-              </label>
+              <label className="text-sm font-medium text-foreground">Password</label>
               <input
                 type="password"
                 required
@@ -73,11 +64,9 @@ export default function LoginPage() {
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
-
             <button
               type="submit"
               disabled={loading}
@@ -85,17 +74,14 @@ export default function LoginPage() {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-
           </form>
         </div>
-
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link to="/register" className="text-primary hover:underline font-medium">
             Create one
           </Link>
         </p>
-
       </div>
     </div>
   )
