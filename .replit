@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "python-3.11"]
+modules = ["nodejs-20", "python-3.12", "web"]
 
 # Forces the green "Run" button to execute inside the correct directory
 run = "npm --prefix portal run dev"
@@ -16,3 +16,4 @@ expertMode = true
 
 [nix]
 packages = ["psmisc"]
+channel = "stable-25_05"
