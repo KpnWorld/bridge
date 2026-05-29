@@ -11,9 +11,57 @@ externalPort = 80
 localPort = 6767
 externalPort = 3000
 
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
 [agent]
 expertMode = true
 
 [nix]
 packages = ["psmisc"]
 channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend API"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Backend API"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && python run.py"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm --prefix portal run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"

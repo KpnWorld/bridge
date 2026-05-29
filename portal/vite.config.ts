@@ -11,8 +11,23 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5174,
+    port: 5000,
     strictPort: true,
-    allowedHosts: true, // 👈 This tells Vite to bypass host header verification inside development containers
+    allowedHosts: true,
+    proxy: {
+      '/ws': {
+        target: 'http://localhost:8000',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
 })

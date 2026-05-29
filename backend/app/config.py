@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
-    port: int = 6767
+    port: int = 8000
 
     class Config:
         env_file = ".env"
