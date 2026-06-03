@@ -18,7 +18,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) {
+    sessionStorage.setItem('returnTo', window.location.pathname + window.location.search)
+    return <Navigate to="/login" replace />
+  }
 
   return <>{children}</>
 }

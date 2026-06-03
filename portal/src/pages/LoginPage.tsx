@@ -26,7 +26,9 @@ export default function LoginPage() {
       return
     }
 
-    navigate('/dashboard')
+    const returnTo = sessionStorage.getItem('returnTo') || '/dashboard'
+    sessionStorage.removeItem('returnTo')
+    navigate(returnTo)
   }
 
   return (

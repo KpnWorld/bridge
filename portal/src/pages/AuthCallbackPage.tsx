@@ -11,7 +11,9 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/dashboard', { replace: true })
+        const returnTo = sessionStorage.getItem('returnTo') || '/dashboard'
+        sessionStorage.removeItem('returnTo')
+        navigate(returnTo, { replace: true })
       } else {
         navigate('/login', { replace: true })
       }
