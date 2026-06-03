@@ -1,4 +1,8 @@
-// kpn-bridge :: Register page
+When email confirmation is enabled, signUp() returns a user but no active session until they click the confirmation link. So the RPC call immediately after signup will always fail with auth.uid() = null.
+The fix is to not call the RPC during signup. Instead, call it after the user confirms their email and logs in for the first time.
+Here's the updated flow:Apply migrationApply migrationMigration applied. Now update RegisterPage.tsx and AuthContext.tsx:
+RegisterPage.tsx — store pending org instead of calling RPC immediately:
+tsx// kpn-bridge :: Register page
 // License: AGPL-3.0
 
 import { useState } from 'react'
@@ -24,6 +28,7 @@ export default function RegisterPage() {
     setError(null)
     setLoading(true)
 
+    // 1. Sign up the user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -38,6 +43,7 @@ export default function RegisterPage() {
       return
     }
 
+    // 2. Store pending org using service role via RPC
     const { error: pendingError } = await supabase.rpc('store_pending_org', {
       p_user_id: authData.user.id,
       org_name: orgName,
@@ -51,6 +57,7 @@ export default function RegisterPage() {
       return
     }
 
+    // 3. Show confirmation message — org will be created after email confirm
     setSubmitted(true)
     setLoading(false)
   }
@@ -178,3 +185,138 @@ export default function RegisterPage() {
     </div>
   )
 }
+
+AuthContext.tsx — complete the org creation on first login after confirmation:
+tsx// kpn-bridge :: Auth context provider
+// License: AGPL-3.0
+
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import type { Session, User } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+import type { Profile } from '../types/database'
+
+interface AuthContextType {
+  session: Session | null
+  user: User | null
+  profile: Profile | null
+  loading: boolean
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) handleSession(session.user.id)
+      else setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        if (session) handleSession(session.user.id)
+        else {
+          setProfile(null)
+          setLoading(false)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleSession(userId: string) {
+    await fetchProfile(userId)
+    await completePendingOrgSetup()
+  }
+
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    setProfile(data)
+    setLoading(false)
+  }
+
+  async function completePendingOrgSetup() {
+    try {
+      // Check if this user has a pending org to create
+      const { data: pending } = await supabase
+        .from('pending_org_setup')
+        .select('*')
+        .single()
+
+      if (!pending) return
+
+      // Check if they already have an org (e.g. refreshed after creation)
+      const { data: existing } = await supabase
+        .from('org_memberships')
+        .select('id')
+        .limit(1)
+        .single()
+
+      if (existing) {
+        // Already has org, clean up pending record
+        await supabase.from('pending_org_setup').delete().eq('user_id', pending.user_id)
+        return
+      }
+
+      // Create the org atomically
+      const { error } = await supabase.rpc('create_organization', {
+        org_name: pending.org_name,
+        org_slug: pending.org_slug,
+      })
+
+      if (!error) {
+        // Clean up pending record
+        await supabase.from('pending_org_setup').delete().eq('user_id', pending.user_id)
+        console.log('[kpn-bridge] Org created successfully on first login')
+      } else {
+        console.error('[kpn-bridge] Failed to complete org setup:', error)
+      }
+    } catch {
+      // No pending setup — normal login, do nothing
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <AuthContext.Provider value={{
+      session,
+      user: session?.user ?? null,
+      profile,
+      loading,
+      signOut,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
+
+How the full flow now works:
+
+User fills in register form → account created + org details saved to pending_org_setup
+User sees "Check your email" screen
+User clicks confirmation link → redirected to login
+User logs in → AuthContext detects pending org → calls create_organization RPC with active session → org created → pending record deleted
+Dashboard loads normally
+
+Paste both files, commit and push. 🚀

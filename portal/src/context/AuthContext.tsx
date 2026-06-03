@@ -25,14 +25,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) fetchProfile(session.user.id)
+      if (session) handleSession(session.user.id)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session)
-        if (session) fetchProfile(session.user.id)
+        if (session) handleSession(session.user.id)
         else {
           setProfile(null)
           setLoading(false)
@@ -43,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  async function handleSession(userId: string) {
+    await fetchProfile(userId)
+    await completePendingOrgSetup()
+  }
+
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
@@ -51,6 +56,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single()
     setProfile(data)
     setLoading(false)
+  }
+
+  async function completePendingOrgSetup() {
+    try {
+      const { data: pending } = await supabase
+        .from('pending_org_setup')
+        .select('*')
+        .single()
+
+      if (!pending) return
+
+      const { data: existing } = await supabase
+        .from('org_memberships')
+        .select('id')
+        .limit(1)
+        .single()
+
+      if (existing) {
+        await supabase.from('pending_org_setup').delete().eq('user_id', pending.user_id)
+        return
+      }
+
+      const { error } = await supabase.rpc('create_organization', {
+        org_name: pending.org_name,
+        org_slug: pending.org_slug,
+      })
+
+      if (!error) {
+        await supabase.from('pending_org_setup').delete().eq('user_id', pending.user_id)
+        console.log('[kpn-bridge] Org created successfully on first login')
+      } else {
+        console.error('[kpn-bridge] Failed to complete org setup:', error)
+      }
+    } catch {
+      // No pending setup — normal login, do nothing
+    }
   }
 
   async function signOut() {
