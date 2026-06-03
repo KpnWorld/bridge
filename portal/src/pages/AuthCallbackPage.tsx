@@ -49,6 +49,28 @@ function parseHashError(): ErrorState | null {
   }
 }
 
+async function storePendingOrgIfPresent(userId: string) {
+  const raw = sessionStorage.getItem('pendingOrg')
+  if (!raw) return
+  try {
+    const { orgName, orgSlug } = JSON.parse(raw)
+    const { error } = await supabase.rpc('store_pending_org', {
+      p_user_id: userId,
+      org_name: orgName,
+      org_slug: orgSlug,
+    })
+    if (error) {
+      console.error('[kpn-bridge] store_pending_org failed:', error)
+    } else {
+      console.log('[kpn-bridge] Pending org stored successfully')
+    }
+  } catch (err) {
+    console.error('[kpn-bridge] Failed to parse pendingOrg from sessionStorage:', err)
+  } finally {
+    sessionStorage.removeItem('pendingOrg')
+  }
+}
+
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [linkError, setLinkError] = useState<ErrorState | null>(null)
@@ -63,8 +85,11 @@ export default function AuthCallbackPage() {
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        // Store pending org now that we have a live session (auth.uid() is set)
+        await storePendingOrgIfPresent(session.user.id)
+
         const returnTo = sessionStorage.getItem('returnTo') || '/dashboard'
         sessionStorage.removeItem('returnTo')
         navigate(returnTo, { replace: true })

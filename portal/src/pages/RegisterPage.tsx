@@ -38,17 +38,27 @@ export default function RegisterPage() {
       return
     }
 
-    const { error: pendingError } = await supabase.rpc('store_pending_org', {
-      p_user_id: authData.user.id,
-      org_name: orgName,
-      org_slug: orgSlug,
-    })
+    if (authData.session) {
+      // Email confirmation is disabled — session is live, call RPC directly
+      const { error: pendingError } = await supabase.rpc('store_pending_org', {
+        p_user_id: authData.session.user.id,
+        org_name: orgName,
+        org_slug: orgSlug,
+      })
 
-    if (pendingError) {
-      console.error('[kpn-bridge] Pending org error:', pendingError)
-      setError(pendingError.message)
-      setLoading(false)
-      return
+      if (pendingError) {
+        console.error('[kpn-bridge] Pending org error:', pendingError)
+        setError(pendingError.message)
+        setLoading(false)
+        return
+      }
+    } else {
+      // Email confirmation is required — no session yet, stash org info
+      // for AuthCallbackPage to pick up once the user confirms their email
+      sessionStorage.setItem(
+        'pendingOrg',
+        JSON.stringify({ orgName, orgSlug })
+      )
     }
 
     setSubmitted(true)
