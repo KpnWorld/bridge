@@ -5,12 +5,12 @@ description: Commit and push all current changes to GitHub with an auto-incremen
 
 # Git Push
 
-Commit and push all changes to the remote with an auto-incrementing version number.
+Commit all changes with an auto-incrementing version tag and guide the user to push.
 
-## IMPORTANT: How to execute
+## IMPORTANT: Sandbox limitation
 
-Git push is a destructive git operation and **cannot be run directly by the main agent**.
-You must create a Project Task with the exact shell commands below and let it run in an isolated environment.
+The agent sandbox **cannot run `git push`** — the remote write is blocked for security.
+The agent can stage and commit locally, but the actual push must be done by the user via the **Replit Git panel** (the branch icon in the left sidebar) or from their local machine.
 
 ## Version Format
 
@@ -25,52 +25,35 @@ You must create a Project Task with the exact shell commands below and let it ru
 ### 1. Find the current version tag
 
 ```bash
-git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1
+git --no-optional-locks tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1
 ```
 
-If no tags exist, start from `0.0.0` so next PATCH = `0.0.1`.
+If no tags exist, start from `0.0.0` → next PATCH = `0.0.1`.
 
 ### 2. Calculate next version
 
 Parse the tag, increment the right part, reset lower parts to 0.
 
-### 3. Write the Project Task plan
+### 3. Tell the user what version is next
 
-Write a plan file to `.local/tasks/git-push.md` with the exact commands:
+Say: "I'll tag this as **vX.Y.Z**. Once committed, open the Git panel (branch icon in the left sidebar) and click **Push** to ship it to GitHub."
 
-```markdown
-# Push vX.Y.Z to GitHub
-
-## Steps
-1. Stage all changes, commit, tag, and push:
+### 4. Stage and commit (no push)
 
 ```bash
-git config user.email "agent@replit.com"
-git config user.name "Replit Agent"
+git --no-optional-locks config user.email "agent@replit.com"
+git --no-optional-locks config user.name "Replit Agent"
 git add -A
-git commit -m "vX.Y.Z — <short description>"
-git tag X.Y.Z
-git push origin main
-git push origin X.Y.Z
-```
+git --no-optional-locks commit -m "vX.Y.Z — <short description of changes>"
+git --no-optional-locks tag X.Y.Z
 ```
 
-### 4. Create and propose the task
+### 5. Confirm to user
 
-Use `bulkCreateProjectTasks` then `proposeProjectTasks` so the user can approve the push.
-
-### 5. Report to user
-
-Tell them: "Ready to push **vX.Y.Z** — approve the task above to ship it."
-
-## Example
-
-Latest tag is `0.1.3` → next PATCH = `0.1.4`
-
-Tell the user: "Ready to push **v0.1.4** — approve the task above to ship it."
+Say: "Committed and tagged **vX.Y.Z** locally. Open the Git panel and hit **Push** — Render and Vercel will deploy automatically."
 
 ## Notes
 
-- `.env`, `.env.*`, `*.local` must already be in `.gitignore` — verify before pushing
-- If `git push` fails due to no upstream: add `git push --set-upstream origin main` before the tag push
-- If the repo has no commits at all, do an initial commit with `git add -A && git commit -m "v0.0.1 — initial commit"` first
+- `.env`, `.env.*`, `*.local` must be in `.gitignore` before committing — always verify
+- `git push` and `git push origin <tag>` are blocked in the sandbox; user must push via Replit UI or local terminal
+- Use `--no-optional-locks` on all read-only git commands to avoid lock conflicts
