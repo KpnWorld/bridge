@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { consumeReturnTo } from '../lib/returnTo'
 
 type ErrorState = {
   title: string
@@ -90,8 +91,7 @@ export default function AuthCallbackPage() {
         // Store pending org now that we have a live session (auth.uid() is set)
         await storePendingOrgIfPresent(session.user.id)
 
-        const returnTo = sessionStorage.getItem('returnTo') || '/dashboard'
-        sessionStorage.removeItem('returnTo')
+        const returnTo = consumeReturnTo()
         navigate(returnTo, { replace: true })
       } else {
         navigate('/login', { replace: true })

@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { consumeReturnTo } from '../lib/returnTo'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -26,8 +27,7 @@ export default function LoginPage() {
       return
     }
 
-    const returnTo = sessionStorage.getItem('returnTo') || '/dashboard'
-    sessionStorage.removeItem('returnTo')
+    const returnTo = consumeReturnTo()
     navigate(returnTo)
   }
 

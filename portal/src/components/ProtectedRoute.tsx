@@ -3,6 +3,7 @@
 
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { saveReturnTo } from '../lib/returnTo'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -19,7 +20,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    sessionStorage.setItem('returnTo', window.location.pathname + window.location.search)
+    saveReturnTo(window.location.pathname + window.location.search)
     return <Navigate to="/login" replace />
   }
 
